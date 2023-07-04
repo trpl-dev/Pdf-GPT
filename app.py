@@ -57,26 +57,30 @@ class my_app:
         collection = client.get_or_create_collection(name="my-collection")
 
         return client
-    
+        
     def process_file(self,file):
 
         loader = PyPDFLoader(file.name)
-        documents = loader.load()  
+        documents = loader.load() 
+        
+        print(len(documents)) 
         pattern = r"/([^/]+)$"
         match = re.search(pattern, file.name)
-        file_name = match.group(1)
+        print(match)
+        file_name = str.lower(match.group(1))
         return documents, file_name
     
     def build_chain(self, file):
         documents, file_name = self.process_file(file)
         #Load embeddings model
         embeddings = OpenAIEmbeddings(openai_api_key=self.OPENAI_API_KEY) 
+        print(type(file_name))
         pdfsearch = Chroma.from_documents(documents, embeddings, collection_name= file_name,)
 
-        chain = ConversationalRetrievalChain.from_llm(ChatOpenAI(temperature=0.0, openai_api_key=self.OPENAI_API_KEY), 
+        self.chain = ConversationalRetrievalChain.from_llm(ChatOpenAI(temperature=0.0, openai_api_key=self.OPENAI_API_KEY), 
                                                   retriever=pdfsearch.as_retriever(search_kwargs={"k": 1}),
                                                   return_source_documents=True,)
-        return chain
+        return self.chain
     
 
 def get_response(history, query, file):
@@ -87,7 +91,7 @@ def get_response(history, query, file):
            
         chain = app(file)
 
-        result = chain({"question": query, 'chat_history':app.chat_history},return_only_outputs=True)
+        result = chain({"question": query, "chat_history": app.chat_history},return_only_outputs=True)
         app.chat_history += [(query, result["answer"])]
         app.N = list(result['source_documents'][0])[1][1]['page']
 
@@ -118,7 +122,10 @@ with gr.Blocks() as demo:
     with gr.Column():
         with gr.Row():
             with gr.Column(scale=0.8):
-                api_key = gr.Textbox(placeholder='Enter OpenAI API key', show_label=False, interactive=True).style(container=False)
+                api_key = gr.Textbox(
+                    placeholder='Enter OpenAI API key', 
+                    show_label=False, 
+                    interactive=True).style(container=False)
             with gr.Column(scale=0.2):
                 change_api_key = gr.Button('Change Key')
         with gr.Row():           
