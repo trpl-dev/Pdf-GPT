@@ -62,8 +62,6 @@ class my_app:
 
         loader = PyPDFLoader(file.name)
         documents = loader.load() 
-        
-        print(len(documents)) 
         pattern = r"/([^/]+)$"
         match = re.search(pattern, file.name)
         print(match)
@@ -74,7 +72,6 @@ class my_app:
         documents, file_name = self.process_file(file)
         #Load embeddings model
         embeddings = OpenAIEmbeddings(openai_api_key=self.OPENAI_API_KEY) 
-        print(type(file_name))
         pdfsearch = Chroma.from_documents(documents, embeddings, collection_name= file_name,)
 
         self.chain = ConversationalRetrievalChain.from_llm(ChatOpenAI(temperature=0.0, openai_api_key=self.OPENAI_API_KEY), 
